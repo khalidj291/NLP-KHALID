@@ -141,6 +141,9 @@ CERTIFICATIONS = {
     "ckad", "cka",
 }
 
+AMBIGUOUS = {"r", "go", "less", "pig", "chef", "puppet", "ar", "vr", "lambda", "express"}
+TECHNICAL_SKILLS = TECHNICAL_SKILLS - AMBIGUOUS
+
 # Combined set for general matching
 ALL_SKILLS = TECHNICAL_SKILLS | SOFT_SKILLS | CERTIFICATIONS
 

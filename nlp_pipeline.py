@@ -205,7 +205,7 @@ def extract_skills(text: str, skills_set: Set[str]) -> Set[str]:
     # Direct substring matching for multi-word skills
     for skill in skills_set:
         # Use word-boundary–aware regex to avoid partial matches
-        pattern = r"\b" + re.escape(skill) + r"\b"
+        pattern = r"(?<![a-z0-9+#])" + re.escape(skill) + r"(?![a-z0-9+#])"
         if re.search(pattern, text_lower):
             found.add(skill)
 

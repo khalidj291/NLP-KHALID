@@ -61,14 +61,18 @@ def analyze_match(
     # --- TF-IDF cosine similarity ---
     tfidf_score = compute_similarity(resume_text, job_text)
 
-    # --- Skill overlap ratio ---
-    if job_skills:
-        skill_ratio = len(matched_skills) / len(job_skills)
-    else:
-        skill_ratio = 0.0
+    # --- Skill overlap ratio (soft skills count 30% as much) ---
+    def _w(s):
+        return 0.3 if s in SOFT_SKILLS else 1.0
 
-    # Weighted blend: 60 % skill overlap + 40 % TF-IDF similarity
-    match_score = round((0.6 * skill_ratio + 0.4 * tfidf_score) * 100, 1)
+    total_w = sum(_w(s) for s in job_skills)
+    skill_ratio = (sum(_w(s) for s in matched_skills) / total_w) if total_w else 0.0
+
+    # Raw cosine on resume vs JD is naturally low, so rescale it
+    tfidf_scaled = min(tfidf_score * 2.5, 1.0)
+
+    # Weighted blend: 70% skill overlap + 30% scaled TF-IDF
+    match_score = round((0.7 * skill_ratio + 0.3 * tfidf_scaled) * 100, 1)
 
     # --- Keyword frequency ---
     job_keywords = keyword_frequency(job_text, top_n=15)
@@ -126,7 +130,7 @@ def generate_suggestions(result: Dict) -> List[str]:
     if missing_tech:
         top_missing = ", ".join(sorted(missing_tech)[:5])
         suggestions.append(
-            f"📌 Add these missing technical skills if you have them: **{top_missing}**"
+            f"📌 Add these missing technical skills if you have them: <b>{top_missing}</b>"
         )
 
     # Missing soft skills
@@ -134,14 +138,14 @@ def generate_suggestions(result: Dict) -> List[str]:
     if missing_soft:
         top_soft = ", ".join(sorted(missing_soft)[:3])
         suggestions.append(
-            f"💡 Mention these soft skills in your experience descriptions: **{top_soft}**"
+            f"💡 Mention these soft skills in your experience descriptions: <b>{top_soft}</b>"
         )
 
     # Missing certifications
     missing_certs = [s for s in missing if s in CERTIFICATIONS]
     if missing_certs:
         suggestions.append(
-            f"🎓 The job mentions certifications you haven't listed: **{', '.join(sorted(missing_certs)[:3])}**"
+            f"🎓 The job mentions certifications you haven't listed: <b>{', '.join(sorted(missing_certs)[:3])}</b>"
         )
 
     # General advice
@@ -151,7 +155,7 @@ def generate_suggestions(result: Dict) -> List[str]:
             "Consider adding a dedicated 'Skills' section with relevant technologies."
         )
 
-    if result["tfidf_score"] < 30:
+    if result["tfidf_score"] < 10:
         suggestions.append(
             "📄 The language in your resume differs a lot from the job description. "
             "Try mirroring key phrases and terminology from the posting."
